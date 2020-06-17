@@ -1,0 +1,12 @@
+README.md
+setup.py
+spectrai/__init__.py
+spectrai.egg-info/PKG-INFO
+spectrai.egg-info/SOURCES.txt
+spectrai.egg-info/dependency_links.txt
+spectrai.egg-info/top_level.txt
+spectrai/datasets/__init__.py
+spectrai/datasets/astorga_arg.py
+spectrai/datasets/base.py
+spectrai/datasets/kssl.py
+spectrai/datasets/schmitter_vnm.py
