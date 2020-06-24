@@ -1,0 +1,29 @@
+# Spectrai Configuration
+
+# ~/data_spectrai/
+# 	|__ raw/
+#	|	|__ astorga_arg_2018/
+#	|		|__ spectra/
+#	|		|__ measurements/2015-xrf-results-mean-and-errors.xls
+#	|	|__ schmitter_vnm_2010/
+#	|		|__ mir-models/
+#				|__	20090215-soil-database-mirs.xls
+#	|		|__ vietnam-petra/
+# 	|__ kssl/
+# 		|__ normalized/
+# 		|__ spectra/
+
+[DATA_ASTORGA_ARG]
+	SPECTRA = "~/data_spectrai/raw/astorga_arg_2018/spectra"
+	MEASUREMENTS = "~/data_spectrai/raw/astorga_arg_2018/measurements/2015-xrf-results-mean-and-errors.xls"
+
+[DATA_SCHMITTER_VNM]
+	SPECTRA = "~/data_spectrai/raw/schmitter_vnm_2010/mir-models"
+	SPECTRA_REP = "~/data_spectrai/raw/schmitter_vnm_2010/vietnam_petra"
+	MEASUREMENTS = "~/data_spectrai/raw/schmitter_vnm_2010/mir-models/20090215-soil-database-mirs.xls"
+
+[DATA_KSSL]
+	HOME = "~/data_spectrai/kssl"
+	NORM = "~/data_spectrai/kssl/normalized"
+	SPECTRA = "~/data_spectrai/kssl/spectra"
+	DB_NAME = "All_Spectra_Access_Portable 2-20-20.accdb"

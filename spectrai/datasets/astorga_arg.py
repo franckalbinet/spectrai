@@ -2,16 +2,13 @@ from pathlib import Path
 import re
 import pandas as pd
 from os.path import join
-from .base import DATA_RAW
+from spectrai.core import get_astorga_config
 
 
-DATA_FOLDER = DATA_RAW / 'astorga_arg_2018'
-DATA_SPECTRA = DATA_FOLDER / 'spectra'
-DATA_MEASUREMENTS = DATA_FOLDER / 'measurements' / \
-    '2015-xrf-results-mean-and-errors.xls'
+DATA_SPECTRA, DATA_MEASUREMENTS = get_astorga_config()
 
 
-def load_spectra_astorga_arg(path=DATA_SPECTRA):
+def load_spectra(path=DATA_SPECTRA):
     """ Returns DRIFT/MIRs spectra, Romina's data, Argentina, 2015"""
     path = Path(path)
     df_list = []
@@ -26,8 +23,8 @@ def load_spectra_astorga_arg(path=DATA_SPECTRA):
     return df[sorted(df.columns)].sort_index(ascending=False)
 
 
-def load_measurements_astorga_arg(path=DATA_MEASUREMENTS,
-                                  analytes=['Fe', 'Ti', 'Ca', 'P', 'Ba']):
+def load_measurements(path=DATA_MEASUREMENTS,
+                      analytes=['Fe', 'Ti', 'Ca', 'P', 'Ba']):
     """ Returns XRF measurements of soil samples, Argentina, 2015"""
     path = Path(path)
     df_labels = pd.read_excel(path, sheet_name='XRF contents FINAL')
@@ -35,13 +32,13 @@ def load_measurements_astorga_arg(path=DATA_MEASUREMENTS,
     return df_labels[['Arg Code'] + analytes]
 
 
-def load_data_astorga_arg(path_X=DATA_SPECTRA,
-                          path_y=DATA_MEASUREMENTS):
+def load_data(path_X=DATA_SPECTRA,
+              path_y=DATA_MEASUREMENTS):
     """ Returns all available data amenable to DL models as numpy arrays."""
     path_X = Path(path_X)
     path_y = Path(path_y)
-    X = load_spectra_astorga_arg(path_X)
-    y = load_measurements_astorga_arg(path_y)
+    X = load_spectra(path_X)
+    y = load_measurements(path_y)
 
     X_names = X.index.values
     instances_id = X.columns.values

@@ -1,18 +1,20 @@
 from pathlib import Path
 import re
 import pandas as pd
-from .base import DATA_RAW
+from spectrai.core import get_schmitter_config
 import brukeropusreader
 
 
-DATA_FOLDER = DATA_RAW / 'schmitter_vnm_2010'
-DATA_SPECTRA = DATA_FOLDER / 'mir-models'
-DATA_SPECTRA_REP = DATA_FOLDER / 'vietnam-petra'
-DATA_MEASUREMENTS = DATA_FOLDER / 'mir-models' / \
-    '20090215-soil-database-mirs.xls'
+# DATA_FOLDER = DATA_RAW / 'schmitter_vnm_2010'
+# DATA_SPECTRA = DATA_FOLDER / 'mir-models'
+# DATA_SPECTRA_REP = DATA_FOLDER / 'vietnam-petra'
+# DATA_MEASUREMENTS = DATA_FOLDER / 'mir-models' / \
+#     '20090215-soil-database-mirs.xls'
+#
+DATA_SPECTRA, DATA_SPECTRA_REP, DATA_MEASUREMENTS = get_schmitter_config()
 
 
-def load_spectra_schmitter_vnm(path=DATA_SPECTRA):
+def load_spectra(path=DATA_SPECTRA):
     """ Returns DRIFT/MIRs spectra, Petra's data, Vietnam, 2007-2008"""
     path = Path(path)
     df_list = []
@@ -32,7 +34,7 @@ def load_spectra_schmitter_vnm(path=DATA_SPECTRA):
     return pd.concat(df_list, axis=1, ignore_index=False, sort=False).set_index('wavenumber')
 
 
-def load_spectra_rep_schmitter_vnm(path=DATA_SPECTRA_REP):
+def load_spectra_rep(path=DATA_SPECTRA_REP):
     """ Returns DRIFT/MIRs spectra and their replicates, Petra's data, Vietnam, 2007-2008"""
     path = Path(path)
     df_list = []
@@ -56,7 +58,7 @@ def load_spectra_rep_schmitter_vnm(path=DATA_SPECTRA_REP):
     return df.reindex(sorted(df.columns), axis=1)
 
 
-def load_measurements_schmitter_vnm(path=DATA_MEASUREMENTS):
+def load_measurements(path=DATA_MEASUREMENTS):
     path = Path(path)
     df_labels = pd.read_excel(path, sheet_name='Sheet1', usecols=list(range(2, 13)), na_values='-')
     df_labels.columns = ['total_label', 'mir_label', 'TC', 'TOC', 'TIC', 'TN',
@@ -64,13 +66,13 @@ def load_measurements_schmitter_vnm(path=DATA_MEASUREMENTS):
     return df_labels.set_index('mir_label')
 
 
-def load_data_schmitter_vnm(path_X=DATA_SPECTRA,
-                            path_y=DATA_MEASUREMENTS):
+def load_data(path_X=DATA_SPECTRA,
+              path_y=DATA_MEASUREMENTS):
     """ Returns all available data amenable to DL models as numpy arrays."""
     path_X = Path(path_X)
     path_y = Path(path_y)
-    X = load_spectra_schmitter_vnm(path_X)
-    y = load_measurements_schmitter_vnm(path_y)
+    X = load_spectra(path_X)
+    y = load_measurements(path_y)
 
     common_ids = _get_common_ids(X, y)
     y = y.loc[common_ids, :]

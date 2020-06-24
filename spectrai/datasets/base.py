@@ -1,9 +1,3 @@
-from pathlib import Path
-
-
-DATA_HOME = Path.home() / Path('data_spectrai')
-DATA_RAW = DATA_HOME / Path('raw')
-
 
 def select_rows(df, where):
     """Perform a series of rows selection in a DataFrame

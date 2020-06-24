@@ -8,17 +8,16 @@ make it amenable to multi-dimensional analytical queries (OLAP);
 """
 import subprocess
 from pathlib import Path
-from .base import DATA_HOME, select_rows
+# from .base import DATA_HOME, select_rows
+from .base import select_rows
+from spectrai.core import get_kssl_config
 import pandas as pd
 import re
 import opusFC  # Ref.: https://stuart-cls.github.io/python-opusfc-dist/
 from tqdm import tqdm
 
 
-DATA_KSSL = DATA_HOME / 'kssl'
-DATA_NORM = DATA_KSSL / 'normalized'
-DATA_SPECTRA = DATA_KSSL / 'spectra'
-DB_NAME = 'All_Spectra_Access_Portable 2-20-20.accdb'
+DATA_KSSL, DATA_NORM, DATA_SPECTRA, DB_NAME = get_kssl_config()
 
 
 def access_to_csv(in_folder=None, out_folder=DATA_NORM, db_name=DB_NAME):
@@ -239,6 +238,16 @@ def load_taxonomy(in_folder=DATA_KSSL):
             .replace({'mollisol': 'mollisols'})
 
 
+def get_tax_orders_lookup_tbl(order_to_int=True):
+    df = load_taxonomy()
+    orders = df['taxonomic_order'].unique()
+    idx = range(len(orders))
+    key_values = zip(orders, idx)
+    if not order_to_int:
+        key_values = zip(idx, orders)
+    return dict(key_values)
+
+
 def load_fact_tbl(in_folder=DATA_KSSL):
     return pd.read_csv(in_folder / 'sample_analysis_fact_tbl.csv')
 
@@ -252,15 +261,24 @@ def get_analytes_like(substring='otas'):
     return df[df['analyte_name'].str.contains(substring)]
 
 
-def load_target(analyte=[725]):
+def load_target(analytes=[725]):
     df = load_fact_tbl()
-    df = df[df['analyte_id'].isin(analyte)]
+    df = df[df['analyte_id'].isin(analytes)]
     df_tax = load_taxonomy()[['lims_pedon_id', 'taxonomic_order']]
     df = df.merge(df_tax, on='lims_pedon_id', how='left')
-    return df[['smp_id', 'taxonomic_order', 'calc_value']]
+    df['order_id'] = df['taxonomic_order'].map(get_tax_orders_lookup_tbl())
+    return df[['smp_id', 'lay_depth_to_top', 'order_id', 'calc_value']]
 
 
-def load_data_kssl(in_folder=DATA_KSSL, analyte=[]):
-    # merge spectra-target
-    # return as tuples (X, y, X_names, y_names)
-    pass
+def load_data(in_folder=DATA_KSSL, analytes=[725], shuffle=True):
+    df_target = load_target(analytes)
+    df_spectra = load_spectra()
+    df = df_target.merge(df_spectra, on='smp_id')
+    if shuffle:
+        df = df.sample(frac=1)
+    X_names = df_spectra.iloc[:, 1:].columns.values.astype('int32')
+    y_names = df.iloc[:, 1:4].columns.values
+    instances_id = df['smp_id'].values
+    X = df.iloc[:, 4:].to_numpy('float32')
+    y = df.iloc[:, 1:4].to_numpy()
+    return (X, X_names, y, y_names, instances_id)
