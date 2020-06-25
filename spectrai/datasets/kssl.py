@@ -4,7 +4,7 @@ The KSSL database is provided as a Microsoft Access database designed
 as an OLTP. The purposes of this module are: (i) to export all tables
 as independent .csv files to make it platform independent; (ii) to
 make it amenable to multi-dimensional analytical queries (OLAP);
-(iii) to provide an API for easy loading of the dataset.
+(iii) to provide an API for easy loading of the dataset as numpy arrays.
 """
 import subprocess
 from pathlib import Path
@@ -21,7 +21,7 @@ DATA_KSSL, DATA_NORM, DATA_SPECTRA, DB_NAME = get_kssl_config()
 
 
 def access_to_csv(in_folder=None, out_folder=DATA_NORM, db_name=DB_NAME):
-    """Export KSSL '.accdb' tables to individual '.csv' files
+    """Exports KSSL '.accdb' tables to individual '.csv' files.
 
     Linux-like OS only as depends on 'mdbtools'
     https://github.com/brianb/mdbtools
@@ -60,7 +60,7 @@ def access_to_csv(in_folder=None, out_folder=DATA_NORM, db_name=DB_NAME):
 
 
 def _get_layer_analyte_tbl():
-    """Return relevant subset of `layer_analyte.csv` KSSL DB table
+    """Returns relevant clean subset of `layer_analyte.csv` KSSL DB table.
 
     Notes
     ----
@@ -69,6 +69,11 @@ def _get_layer_analyte_tbl():
     `calc_value` are by default `str` as possibly containing
     values such as (slight, 1:2, ...). Only numeric ones are
     selected
+
+    Returns
+    -------
+    Pandas DataFrame
+        New DataFrame with selected columns, rows
     """
     return pd.read_csv(DATA_NORM / 'layer_analyte.csv', low_memory=False) \
         .dropna(subset=['analyte_id', 'calc_value']) \
@@ -80,7 +85,13 @@ def _get_layer_analyte_tbl():
 
 
 def _get_layer_tbl():
-    """Return relevant subset of `analyte.csv` KSSL DB table"""
+    """Returns relevant clean subset of `analyte.csv` KSSL DB table.
+
+    Returns
+    -------
+    Pandas DataFrame
+        New DataFrame with selected columns, rows
+    """
     return pd.read_csv(DATA_NORM / 'layer.csv', low_memory=False) \
         .loc[:, ['lay_id', 'lims_pedon_id', 'lims_site_id', 'lay_depth_to_top']] \
         .dropna() \
@@ -88,14 +99,34 @@ def _get_layer_tbl():
 
 
 def _get_sample_tbl():
-    """Return relevant subset of `sample.csv` KSSL DB table"""
+    """Returns relevant clean subset of `sample.csv` KSSL DB table.
+
+    Notes
+    ----
+    Only `smp_id` > 1000  relevant to MIRS analysis selected
+
+    Returns
+    -------
+    Pandas DataFrame
+        New DataFrame with selected columns, rows
+    """
     return pd.read_csv(DATA_NORM / 'sample.csv', low_memory=False) \
         .pipe(select_rows, {'smp_id': lambda d: d > 1000}) \
         .loc[:, ['smp_id', 'lay_id']]
 
 
 def _get_mirs_det_tbl(valid_name=['XN', 'XS']):
-    """TO BE TESTED"""
+    """Returns relevant clean subset of `mir_scan_det_data.csv` KSSL DB table.
+
+    Notes
+    ----
+    Only `scan_path_name` containing valid substring `['XN', 'XS'] by default.
+
+    Returns
+    -------
+    Pandas DataFrame
+        New DataFrame with selected columns, rows
+    """
     return pd.read_csv(DATA_NORM / 'mir_scan_det_data.csv', low_memory=False) \
         .dropna(subset=['scan_path_name', 'mir_scan_mas_id']) \
         .loc[:, ['mir_scan_mas_id', 'scan_path_name']] \
@@ -104,20 +135,39 @@ def _get_mirs_det_tbl(valid_name=['XN', 'XS']):
 
 
 def _get_mirs_mas_tbl():
-    """TO BE TESTED"""
+    """Returns relevant clean subset of `mir_scan_mas_data.csv` KSSL DB table.
+
+    Returns
+    -------
+    Pandas DataFrame
+        New DataFrame with selected columns, rows
+    """
     return pd.read_csv(DATA_NORM / 'mir_scan_mas_data.csv', low_memory=False) \
         .loc[:, ['smp_id', 'mir_scan_mas_id']]
 
 
 def _get_lookup_smp_id_scan_path():
-    """TO BE TESTED"""
+    """Returns relevant clean subset of `mir_scan_mas_data.csv` KSSL DB table.
+
+    Returns
+    -------
+    Pandas DataFrame
+        New DataFrame with selected columns, rows
+    """
     return pd.merge(_get_mirs_mas_tbl(), _get_mirs_det_tbl(), on='mir_scan_mas_id', how='inner') \
         .loc[:, ['smp_id', 'scan_path_name']] \
         .astype({'smp_id': int, 'scan_path_name': 'string'})
 
 
 def build_analyte_dim_tbl(out_folder=DATA_KSSL):
-    """Return relevant subset of `analyte.csv` KSSL DB table"""
+    """Return relevant clean subset of `analyte.csv` KSSL DB table.
+
+    Returns
+    -------
+    Pandas DataFrame
+        New DataFrame with selected columns, rows
+    """
+
     df = pd.read_csv(DATA_NORM / 'analyte.csv') \
         .loc[:, ['analyte_id', 'analyte_name', 'analyte_abbrev', 'uom_abbrev']]
     df.to_csv(out_folder / 'analyte_dim_tbl.csv', index=False)
@@ -131,6 +181,11 @@ def build_taxonomy_dim_tbl(out_folder=DATA_KSSL):
     ----
     A same `lims_pedon_id` column as duplicates (several classifi. version).
     Only `taxonomic_classification_type` = `'sampled as'` should be considered.
+
+    Returns
+    -------
+    Pandas DataFrame
+        New DataFrame with selected columns, rows
     """
     df = pd.read_csv(DATA_NORM / 'lims_ped_tax_hist.csv') \
         .pipe(select_rows, {'taxonomic_classification_type': lambda d: d == 'sampled as'}) \
