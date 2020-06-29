@@ -311,9 +311,24 @@ def load_analytes(in_folder=DATA_KSSL):
     return pd.read_csv(in_folder / 'analyte_dim_tbl.csv')
 
 
-def get_analytes_like(substring='otas'):
+def get_analytes(like='otas'):
     df = load_analytes()
-    return df[df['analyte_name'].str.contains(substring)]
+    return df[df['analyte_name'].str.contains(like)]
+
+
+def count_spectra_by_analytes(like):
+    df = load_fact_tbl() \
+        .merge(get_analytes(like=like), on='analyte_id') \
+        .loc[:, ['lay_id', 'analyte_name', 'smp_id']]
+
+    df_spectra = load_spectra()
+    df = pd.merge(df, df_spectra.reset_index()[['smp_id']], on='smp_id')
+
+    return df \
+        .groupby('analyte_name') \
+        .count()[['lay_id']] \
+        .rename(columns={'lay_id': 'dataset_size'}) \
+        .sort_values(by='dataset_size', ascending=False)
 
 
 def load_target(analytes=[725]):
