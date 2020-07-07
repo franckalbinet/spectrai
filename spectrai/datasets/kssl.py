@@ -9,7 +9,7 @@ make it amenable to multi-dimensional analytical queries (OLAP);
 import subprocess
 from pathlib import Path
 # from .base import DATA_HOME, select_rows
-from .base import select_rows
+from .base import select_rows, slices
 from spectrai.core import get_kssl_config
 import pandas as pd
 import re
@@ -160,7 +160,7 @@ def _get_lookup_smp_id_scan_path():
 
 
 def build_analyte_dim_tbl(out_folder=DATA_KSSL):
-    """Return relevant clean subset of `analyte.csv` KSSL DB table.
+    """Builds/creates analyte_dim dim table (star schema) for KSSL dataset
 
     Returns
     -------
@@ -200,6 +200,13 @@ def build_location_dim_tbl(out_folder=DATA_KSSL):
 
 
 def build_sample_analysis_fact_tbl(out_folder=DATA_KSSL):
+    """Builds/creates sample_analysis fact table (star schema) for KSSL dataset
+
+    Returns
+    -------
+    Pandas DataFrame
+        New DataFrame with selected columns, rows
+    """
     df = pd.merge(
         pd.merge(_get_layer_tbl(), _get_sample_tbl(), on='lay_id'),
         _get_layer_analyte_tbl(), on='lay_id')
@@ -209,6 +216,8 @@ def build_sample_analysis_fact_tbl(out_folder=DATA_KSSL):
 
 
 def build_kssl_star_tbl():
+    """Builds/creates star schema version of the KSSL DB"""
+
     print('Building analyte_dim_tbl...')
     build_analyte_dim_tbl()
     print('Building taxonomy_dim_tbl...')
@@ -218,12 +227,6 @@ def build_kssl_star_tbl():
     print('Building sample_analysis_fact_tbl...')
     build_sample_analysis_fact_tbl()
     print('Success!')
-
-
-def _slices(len_array, nb_chunks=3):
-    step = len_array // nb_chunks
-    bounds = [x*step for x in range(nb_chunks)] + [len_array]
-    return zip(bounds, bounds[1:])
 
 
 def export_spectra(in_folder=None, out_folder=DATA_KSSL,
@@ -242,7 +245,7 @@ def export_spectra(in_folder=None, out_folder=DATA_KSSL,
     valid_files = [f for f in in_folder.rglob('*.0')
                    if re.search(r'X.', f.name)[0] in valid_name]
 
-    for (l_bound, u_bound) in list(_slices(len(valid_files), nb_chunks)):
+    for (l_bound, u_bound) in list(slices(len(valid_files), nb_chunks)):
         columns = None
         rows_list = []
         for i, f in enumerate(tqdm(valid_files[l_bound:u_bound])):

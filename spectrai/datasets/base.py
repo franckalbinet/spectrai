@@ -1,4 +1,3 @@
-
 def select_rows(df, where):
     """Perform a series of rows selection in a DataFrame
 
@@ -25,3 +24,11 @@ def select_rows(df, where):
     for col, f in where.items():
         df = df[df[col].apply(f)]
     return df
+
+
+def slices(len_array, nb_chunks=3):
+
+    assert nb_chunks <= len_array, "nb_chunks should be lower or equal than len_array"
+    step = len_array // nb_chunks
+    bounds = [x*step for x in range(nb_chunks)] + [len_array]
+    return zip(bounds, bounds[1:])
