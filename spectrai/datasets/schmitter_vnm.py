@@ -5,17 +5,11 @@ from spectrai.core import get_schmitter_config
 import brukeropusreader
 
 
-# DATA_FOLDER = DATA_RAW / 'schmitter_vnm_2010'
-# DATA_SPECTRA = DATA_FOLDER / 'mir-models'
-# DATA_SPECTRA_REP = DATA_FOLDER / 'vietnam-petra'
-# DATA_MEASUREMENTS = DATA_FOLDER / 'mir-models' / \
-#     '20090215-soil-database-mirs.xls'
-#
 DATA_SPECTRA, DATA_SPECTRA_REP, DATA_MEASUREMENTS = get_schmitter_config()
 
 
 def load_spectra(path=DATA_SPECTRA):
-    """ Returns DRIFT/MIRs spectra, Petra's data, Vietnam, 2007-2008"""
+    """Returns DRIFT/MIRs spectra, Petra's data, Vietnam, 2007-2008"""
     path = Path(path)
     df_list = []
     for i, f in enumerate(path.glob('*.*')):
@@ -35,7 +29,7 @@ def load_spectra(path=DATA_SPECTRA):
 
 
 def load_spectra_rep(path=DATA_SPECTRA_REP):
-    """ Returns DRIFT/MIRs spectra and their replicates, Petra's data, Vietnam, 2007-2008"""
+    """Returns DRIFT/MIRs spectra and their replicates, Petra's data, Vietnam, 2007-2008"""
     path = Path(path)
     df_list = []
     _ids = []

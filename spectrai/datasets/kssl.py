@@ -177,7 +177,7 @@ def build_analyte_dim_tbl(out_folder=DATA_KSSL):
 
 
 def build_taxonomy_dim_tbl(out_folder=DATA_KSSL):
-    """Return relevant subset of `lims_ped_tax_hist.csv` KSSL DB table
+    """Returns relevant subset of `lims_ped_tax_hist.csv` KSSL DB table
 
     Notes
     ----
@@ -219,7 +219,6 @@ def build_sample_analysis_fact_tbl(out_folder=DATA_KSSL):
 
 def build_kssl_star_tbl():
     """Builds/creates star schema version of the KSSL DB"""
-
     print('Building analyte_dim_tbl...')
     build_analyte_dim_tbl()
     print('Building taxonomy_dim_tbl...')
@@ -289,7 +288,24 @@ def export_spectra(in_folder=None, out_folder=DATA_KSSL,
 
 
 def bundle_spectra_dim_tbl(in_folder=DATA_SPECTRA, out_folder=DATA_KSSL, with_replicates=False):
-    """TO BE TESTED"""
+    """Creates MIRS spectra dimension table of new KSSL star-like schema
+
+    Parameters
+    ----------
+    in_folder: string, optional
+        Specify the path of the folder containing the KSSL MIRS spectra
+
+    out_folder: string, optional
+        Specify the path of the folder that will contain exported files
+
+    with_replicates: boolean, optional
+        Specify whether to include spectra replicates (averaged otherwise)
+
+    Returns
+    -------
+    Pandas DataFrame
+        Spectra dimension table
+    """
     all_files = list(in_folder.glob('*.csv'))
     li = []
     columns = None
@@ -315,15 +331,23 @@ def bundle_spectra_dim_tbl(in_folder=DATA_SPECTRA, out_folder=DATA_KSSL, with_re
 
 
 def load_spectra(in_folder=DATA_KSSL):
+    """Loads Spectra dimension table"""
     return pd.read_csv(in_folder / 'spectra_dim_tbl.csv')
 
 
 def load_taxonomy(in_folder=DATA_KSSL):
+    """Loads taxonomy dimension table
+
+    Notes
+    ----
+    'mollisols' order is sometimes mispelled so fixing it
+    """
     return pd.read_csv(in_folder / 'taxonomy_dim_tbl.csv') \
-            .replace({'mollisol': 'mollisols'})
+        .replace({'mollisol': 'mollisols'})
 
 
 def get_tax_orders_lookup_tbl(order_to_int=True):
+    """Returns a lookup table of taxonomic order names and respective ids"""
     df = load_taxonomy()
     orders = df['taxonomic_order'].unique()
     idx = range(len(orders))
@@ -342,11 +366,13 @@ def load_analytes(in_folder=DATA_KSSL):
 
 
 def get_analytes(like='otas'):
+    """Returns filtered version of analyte dim table containing specified substring"""
     df = load_analytes()
     return df[df['analyte_name'].str.contains(like)]
 
 
 def count_spectra_by_analytes(like):
+    """Returns number of spectra available by analytes containing specifed substring (like)"""
     df = load_fact_tbl() \
         .merge(get_analytes(like=like), on='analyte_id') \
         .loc[:, ['lay_id', 'analyte_name', 'smp_id']]
@@ -362,6 +388,8 @@ def count_spectra_by_analytes(like):
 
 
 def load_target(analytes=[725]):
+    """Loads target `calc_value` + auxiliary attributes `lay_depth_to_top`
+       and `order_id` for specified analytes"""
     df = load_fact_tbl()
     df = df[df['analyte_id'].isin(analytes)]
     df_tax = load_taxonomy()[['lims_pedon_id', 'taxonomic_order']]
@@ -371,6 +399,7 @@ def load_target(analytes=[725]):
 
 
 def load_data(in_folder=DATA_KSSL, analytes=[725], shuffle=True):
+    """Loads data (spectra + target + auxiliary attributes for specified analytes"""
     df_target = load_target(analytes)
     df_spectra = load_spectra()
     df = df_target.merge(df_spectra, on='smp_id')
