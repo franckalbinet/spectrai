@@ -387,11 +387,11 @@ def count_spectra_by_analytes(like):
         .sort_values(by='dataset_size', ascending=False)
 
 
-def load_target(analytes=[725]):
+def load_target(analyte=725):
     """Loads target `calc_value` + auxiliary attributes `lay_depth_to_top`
        and `order_id` for specified analytes"""
     df = load_fact_tbl()
-    df = df[df['analyte_id'].isin(analytes)]
+    df = df[df['analyte_id'] == analyte]
     df_tax = load_taxonomy()[['lims_pedon_id', 'taxonomic_order']]
     df = df.merge(df_tax, on='lims_pedon_id', how='left')
     df['order_id'] = df['taxonomic_order'].map(get_tax_orders_lookup_tbl())

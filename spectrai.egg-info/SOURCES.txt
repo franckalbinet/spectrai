@@ -12,5 +12,8 @@ spectrai/datasets/astorga_arg.py
 spectrai/datasets/base.py
 spectrai/datasets/kssl.py
 spectrai/datasets/schmitter_vnm.py
+spectrai/metrics/__init__.py
+spectrai/metrics/keras.py
+spectrai/metrics/skl.py
 spectrai/vis/__init__.py
 spectrai/vis/spectra.py
