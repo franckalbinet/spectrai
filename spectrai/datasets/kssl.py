@@ -14,6 +14,7 @@ from pathlib import Path
 from .base import select_rows, chunk
 from spectrai.core import get_kssl_config
 import pandas as pd
+import numpy as np
 import re
 import opusFC  # Ref.: https://stuart-cls.github.io/python-opusfc-dist/
 from tqdm import tqdm
@@ -332,7 +333,8 @@ def bundle_spectra_dim_tbl(in_folder=DATA_SPECTRA, out_folder=DATA_KSSL, with_re
 
 def load_spectra(in_folder=DATA_KSSL):
     """Loads Spectra dimension table"""
-    return pd.read_csv(in_folder / 'spectra_dim_tbl.csv')
+    return pd.read_csv(in_folder / 'spectra_dim_tbl.csv') \
+        .drop_duplicates(subset='smp_id', keep=False)
 
 
 def load_taxonomy(in_folder=DATA_KSSL):
@@ -361,30 +363,8 @@ def load_fact_tbl(in_folder=DATA_KSSL):
     return pd.read_csv(in_folder / 'sample_analysis_fact_tbl.csv')
 
 
-def load_analytes(in_folder=DATA_KSSL):
+def load_analytes(in_folder=DATA_KSSL, like=None):
     return pd.read_csv(in_folder / 'analyte_dim_tbl.csv')
-
-
-def get_analytes(like='otas'):
-    """Returns filtered version of analyte dim table containing specified substring"""
-    df = load_analytes()
-    return df[df['analyte_name'].str.contains(like)]
-
-
-def count_spectra_by_analytes(like):
-    """Returns number of spectra available by analytes containing specifed substring (like)"""
-    df = load_fact_tbl() \
-        .merge(get_analytes(like=like), on='analyte_id') \
-        .loc[:, ['lay_id', 'analyte_name', 'smp_id']]
-
-    df_spectra = load_spectra()
-    df = pd.merge(df, df_spectra.reset_index()[['smp_id']], on='smp_id')
-
-    return df \
-        .groupby('analyte_name') \
-        .count()[['lay_id']] \
-        .rename(columns={'lay_id': 'dataset_size'}) \
-        .sort_values(by='dataset_size', ascending=False)
 
 
 def load_target(analyte=725):
@@ -395,12 +375,13 @@ def load_target(analyte=725):
     df_tax = load_taxonomy()[['lims_pedon_id', 'taxonomic_order']]
     df = df.merge(df_tax, on='lims_pedon_id', how='left')
     df['order_id'] = df['taxonomic_order'].map(get_tax_orders_lookup_tbl())
-    return df[['smp_id', 'lay_depth_to_top', 'order_id', 'calc_value']]
+    return df[['smp_id', 'lay_depth_to_top', 'order_id', 'calc_value']] \
+        .drop_duplicates(subset='smp_id', keep=False)
 
 
-def load_data(in_folder=DATA_KSSL, analytes=[725], shuffle=True):
+def load_data(analyte=725, shuffle=True):
     """Loads data (spectra + target + auxiliary attributes for specified analytes"""
-    df_target = load_target(analytes)
+    df_target = load_target(analyte)
     df_spectra = load_spectra()
     df = df_target.merge(df_spectra, on='smp_id')
     if shuffle:
@@ -411,3 +392,19 @@ def load_data(in_folder=DATA_KSSL, analytes=[725], shuffle=True):
     X = df.iloc[:, 4:].to_numpy('float32')
     y = df.iloc[:, 1:4].to_numpy()
     return (X, X_names, y, y_names, instances_id)
+
+
+def load_data_analytes(features=[622], targets=[725]):
+    """Loads data to predict analyte(s) from other analyte(s)"""
+    df_fact = load_fact_tbl()
+    analytes = features + targets
+    df = df_fact[df_fact['analyte_id'].isin(analytes)]
+    df_analytes = pd.pivot_table(df, values='calc_value',
+                                 index=['smp_id'],
+                                 columns=['analyte_id']).dropna()
+    y = df_analytes.loc[:, targets].to_numpy()
+    y_names = np.array(targets)
+    X = df_analytes.loc[:, features].to_numpy()
+    X_names = np.array(features)
+    instances_id = df_analytes.index.to_numpy()
+    return X, X_names, y, y_names, instances_id
