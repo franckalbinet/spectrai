@@ -21,7 +21,6 @@ class TakeDerivative(BaseEstimator, TransformerMixin):
     -------
     scikit-learn custom transformer
     """
-
     def __init__(self, window_length=11, polyorder=1, deriv=1):
         self.window_length = window_length
         self.polyorder = polyorder
@@ -54,3 +53,45 @@ class SNV(BaseEstimator, TransformerMixin):
     def transform(self, X, y=None):
         mean, std = np.mean(X, axis=1).reshape(-1, 1), np.std(X, axis=1).reshape(-1, 1)
         return (X - mean)/std
+
+
+class DropSpectralRegions(BaseEstimator, TransformerMixin):
+    """Creates scikit-learn custom transformer dropping specific spectral region(s)
+
+    Parameters
+    ----------
+    wavenumbers: list
+        List of wavenumbers where absorbance measured
+
+    regions: list
+        List of region(s) to drop
+
+    Returns
+    -------
+    scikit-learn custom transformer
+    """
+    def __init__(self, wavenumbers, regions=[2389,  2269]):
+        self.wavenumbers = wavenumbers
+        self.regions = regions
+
+    def _sanitize(self, regions):
+        nb_regions = len(np.array(regions).shape)
+        return np.array([regions]) if nb_regions == 1 else np.array(regions)
+
+    def _exists(self, wavenumbers, regions):
+        for wn in regions.flatten():
+            assert wn in wavenumbers, 'Wavenumber "{}" does not exist'.format(wn)
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X, y=None):
+        regions = self._sanitize(self.regions)
+        X_transformed = np.copy(X)
+        self._exists(self.wavenumbers, regions)
+        for region in regions:
+            high, low = region
+            mask = (self.wavenumbers <= high) & (self.wavenumbers >= low)
+            X_transformed[:, mask] = 0
+
+        return X_transformed
