@@ -367,33 +367,6 @@ def load_analytes(in_folder=DATA_KSSL, like=None):
     return pd.read_csv(in_folder / 'analyte_dim_tbl.csv')
 
 
-def load_target(analyte=725):
-    """Loads target `calc_value` + auxiliary attributes `lay_depth_to_top`
-       and `order_id` for specified analytes"""
-    df = load_fact_tbl()
-    df = df[df['analyte_id'] == analyte]
-    df_tax = load_taxonomy()[['lims_pedon_id', 'taxonomic_order']]
-    df = df.merge(df_tax, on='lims_pedon_id', how='left')
-    df['order_id'] = df['taxonomic_order'].map(get_tax_orders_lookup_tbl())
-    return df[['smp_id', 'lay_depth_to_top', 'order_id', 'calc_value']] \
-        .drop_duplicates(subset='smp_id', keep=False)
-
-
-def load_data(analyte=725, shuffle=True):
-    """Loads data (spectra + target + auxiliary attributes for specified analytes"""
-    df_target = load_target(analyte)
-    df_spectra = load_spectra()
-    df = df_target.merge(df_spectra, on='smp_id')
-    if shuffle:
-        df = df.sample(frac=1)
-    X_names = df_spectra.iloc[:, 1:].columns.values.astype('int32')
-    y_names = df.iloc[:, 1:4].columns.values
-    instances_id = df['smp_id'].values
-    X = df.iloc[:, 4:].to_numpy('float32')
-    y = df.iloc[:, 1:4].to_numpy()
-    return (X, X_names, y, y_names, instances_id)
-
-
 def load_data_analytes(features=[622], targets=[725]):
     """Loads data to predict analyte(s) from other analyte(s)"""
     df_fact = load_fact_tbl()
@@ -408,3 +381,38 @@ def load_data_analytes(features=[622], targets=[725]):
     X_names = np.array(features)
     instances_id = df_analytes.index.to_numpy()
     return X, X_names, y, y_names, instances_id
+
+
+def load_target(analytes=725):
+    """Loads target analytes + auxiliary attributes `lay_depth_to_top`
+       and `order_id` for specified analytes"""
+    analytes = [analytes] if not isinstance(analytes, list) else analytes
+    df = load_fact_tbl()
+    df = df[df['analyte_id'].isin(analytes)]
+    df = pd.pivot_table(df, values='calc_value',
+                        index=['smp_id', 'lims_pedon_id', 'lay_depth_to_top'],
+                        columns=['analyte_id']).dropna().reset_index()
+    df_tax = load_taxonomy()[['lims_pedon_id', 'taxonomic_order']]
+    df = df.merge(df_tax, on='lims_pedon_id', how='left')
+    df['order_id'] = df['taxonomic_order'].map(get_tax_orders_lookup_tbl())
+    columns = ['smp_id', 'lay_depth_to_top', 'order_id'] + analytes
+    return df[columns] \
+        .drop_duplicates(subset='smp_id', keep=False)
+
+
+def load_data(analytes=725, shuffle=True):
+    """Loads data (spectra + target + auxiliary attributes for specified analytes"""
+    analytes = [analytes] if not isinstance(analytes, list) else analytes
+    df = load_fact_tbl()
+    df_target = load_target(analytes)
+    df_spectra = load_spectra()
+    df = df_target.merge(df_spectra, on='smp_id')
+    if shuffle:
+        df = df.sample(frac=1)
+    X_names = df_spectra.iloc[:, 1:].columns.values.astype('int32')
+    wn_idx = df.shape[1] - len(X_names)
+    y_names = df.iloc[:, 1:wn_idx].columns.values
+    instances_id = df['smp_id'].values
+    X = df.iloc[:, wn_idx:].to_numpy('float32')
+    y = df.iloc[:, 1:wn_idx].to_numpy()
+    return (X, X_names, y, y_names, instances_id)
